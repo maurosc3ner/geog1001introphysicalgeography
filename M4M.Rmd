@@ -1,0 +1,125 @@
+---
+title: "Module 4: Soils, Ecosystems, and Biomes"
+author: "Esteban Correa"
+date: "March 2, 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+rm(list = ls())
+library(foreign)
+library(rgdal)
+library(tmap)
+library(raster)
+library(rgeos)
+library(classInt)
+library(sf)
+library(tidyverse)
+library(cowplot)
+library(leaflet)
+library(leaflet.esri)
+```
+
+```{r,echo=FALSE,eval=FALSE}
+ohioPm2.5<-read.csv("ad_viz_plotval_data.csv",header = T)
+ohioBorder<-readOGR("ohio","tl_2016_39_cousub")
+
+stations<-ohioPm2.5[!(duplicated(ohioPm2.5$Site.ID)),] 
+coordinates(stations) <- ~SITE_LONGITUDE+SITE_LATITUDE
+
+county <- gUnaryUnion(ohioBorder, id = ohioBorder@data$COUTYFP)
+plot(stations,color="red")
+# plot(ohioBorder,add=T)
+plot(county,add=T)
+```
+
+
+```{r,echo=FALSE,eval=FALSE}
+
+pal = colorNumeric("RdYlBu", domain = stations$Daily.Mean.PM2.5.Concentration)
+leaflet( stations) %>% 
+  addProviderTiles(providers$OpenStreetMap) %>% 
+  addCircles(col = ~pal(Daily.Mean.PM2.5.Concentration), opacity = 0.9) %>% 
+  addPolygons(data = county, fill = FALSE) %>% 
+  addLegend(pal = pal, values = ~Daily.Mean.PM2.5.Concentration) %>% 
+  # setView(lng = -0.1, 51.5, zoom = 12) %>% 
+  addMiniMap()
+```
+
+# Introduction
+
+Have you ever wondered what would happen if the Earth loose all its plants?
+
+Well, our beautiful planet would definitely look barren and sad. We would also lose our main source of oxygen (that important stuff we breathe and rely on for metabolism). Carbon dioxide would no longer be cleaned out of the air, and as it trapped heat, Earth might warm up fast. And, perhaps most problematically, almost every living thing on Earth would eventually run out of food and die.
+Gross primary production (GPP) is the total amount of Carbon assimilated by plants within a given area over a time interval. Net primary productivity, or NPP, is GPP minus the rate of energy loss to metabolism and maintenance. In other words, it's the rate at which energy is stored as biomass by plants or other primary producers and made available to the consumers in the ecosystem. Net primary production are typically expressed in units of mass per unit area per unit time interval (gC/m2/yr )
+
+Let's find the NPP for IOWA state!
+
+```{r, echo=FALSE}
+npp<-read.csv("crop_nppedited.csv",header = T)
+
+npp1996<-npp %>%
+  filter(year==1996)
+
+coordinates(npp1996) <- ~lon+lat
+
+npp1982<-npp %>%
+  filter(year==1982)
+
+coordinates(npp1982) <- ~lon+lat
+
+
+# county <- gUnaryUnion(ohioBorder, id = ohioBorder@data$COUTYFP)
+# plot(npp1996,color="red")
+# # plot(ohioBorder,add=T)
+# plot(county,add=T)
+```
+
+# IOWA 1982
+
+```{r, echo=FALSE}
+
+pal = colorNumeric("RdYlBu", domain = npp1982$totnpp)
+leaflet( npp1982) %>% 
+  addProviderTiles(providers$Stamen.TonerLite) %>% 
+  addCircles( weight = 1, radius = 10000, 
+    color = ~pal(totnpp), fillOpacity = 1) %>%
+  addLegend(pal = pal, values = ~totnpp) %>%
+  # setView(lng = -0.1, 51.5, zoom = 12) %>% 
+  addMiniMap()
+```
+
+# IOWA 1996
+
+```{r, echo=FALSE}
+
+pal = colorNumeric("RdYlBu", domain = npp1996$totnpp)
+leaflet( npp1996) %>% 
+  addProviderTiles(providers$Stamen.TonerLite) %>% 
+  addCircles( weight = 1, radius = 10000, 
+    color = ~pal(totnpp), fillOpacity = 1) %>%
+  # addPolygons(data = county, fill = FALSE) %>% 
+  addLegend(pal = pal, values = ~totnpp) %>%
+  # setView(lng = -0.1, 51.5, zoom = 12) %>% 
+  addMiniMap()
+```
+
+1. Create NPP maps for IOWA using 1982 and 1996 data (latitude, longitude, totalnpp)
+
+2. Define your breaks (data classification method) based on all NPP measures. The lower category will be no tornado events. For others you can use other scheme such as quartile. (https://blog.cartographica.com/gis-data-classifications-in-cartographica.html)
+Then, Draw isolines using previous knowledge from past maps, separating categories of NPP using 100 .
+Finally, shade or color those areas using a sequential color ramp with one hue. Please see http://colorbrewer2.org/ for examples
+
+3. Compare both years in terms of NPP through a short narrative. Are we loosing primary production? (20 words)
+
+4. Name one county with the highest NPP and one with the lower NPP for 1996 data.
+
+# References
+
+[1] Energy flow & primary productivity https://www.khanacademy.org/science/biology/ecology/intro-to-ecosystems/a/energy-flow-primary-productivity
+
+[2] Data has been downloaded from The Oak Ridge National Laboratory Distributed Active Archive Center (ORNL DAAC) for Biogeochemical Dynamics is a NASA Earth Observing System Data and Information System (EOSDIS) data center managed by the Earth Science Data and Information System (ESDIS) Project. https://daac.ornl.gov/
+
